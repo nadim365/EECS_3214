@@ -1,2 +1,3 @@
 # EECS_3214
-Course projects for EECS 3214 - Computer network protocols and applications
+Course projects/assignments for 
+EECS 3214 - Computer network protocols and applications
