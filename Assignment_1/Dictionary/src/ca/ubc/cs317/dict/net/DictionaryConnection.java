@@ -27,20 +27,20 @@ public class DictionaryConnection {
     public DictionaryConnection(String host, int port) throws DictConnectionException {
 
         // TODO Add your code here
-     try{
-        socket = new Socket(host, port);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(
-            new InputStreamReader(socket.getInputStream()));
-       Status response = Status.readStatus(in);
-         if(response.getStatusCode() != 220)
-              throw new DictConnectionException("Expected code 220");
+        try {
+            socket = new Socket(host, port);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            Status response = Status.readStatus(in);
+            if (response.getStatusCode() != 220) {
+                throw new DictConnectionException("Expected code 220");
+            }
 
-         
-     } catch (Exception e) {
-         //TODO: handle exception
-         System.out.println("Exception: " + e);
-     }
+            System.out.println(response.getStatusCode() +" "+ response.getDetails());
+        } catch (Exception e) {
+            // TODO: handle exception
+            System.out.println("Exception: " + e);
+        }
     }
 
     /** Establishes a new connection with a DICT server using an explicit host, with the default DICT port number, and
@@ -61,7 +61,17 @@ public class DictionaryConnection {
     public synchronized void close() {
 
         // TODO Add your code here
-
+        try {
+            System.out.println("Client: QUIT");
+            out.println("QUIT");                                    
+            Status response = Status.readStatus(in);               
+            System.out.println("Server : " + response.getStatusCode() + " " + response.getDetails());
+            socket.close();
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.out.println(e);
+        }                
+        
     }
 
     /** Requests and retrieves a map of database name to an equivalent database object for all valid databases used in the server.
