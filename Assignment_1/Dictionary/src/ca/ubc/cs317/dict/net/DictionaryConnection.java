@@ -33,8 +33,8 @@ public class DictionaryConnection {
         in = new BufferedReader(
             new InputStreamReader(socket.getInputStream()));
        Status response = Status.readStatus(in);
-         if(response.getStatus)
-              throw new DictConnectionException("Expected preliminary reply");
+         if(response.getStatusCode() != 220)
+              throw new DictConnectionException("Expected code 220");
 
          
      } catch (Exception e) {
