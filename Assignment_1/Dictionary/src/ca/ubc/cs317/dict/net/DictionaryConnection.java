@@ -61,9 +61,9 @@ public class DictionaryConnection {
     public synchronized void close() {
 
         // TODO Add your code here
-        try {
-            System.out.println("Client: QUIT");
+        try {            
             out.println("QUIT");                                    
+            System.out.println("Client: QUIT");
             Status response = Status.readStatus(in);               
             System.out.println("Server : " + response.getStatusCode() + " " + response.getDetails());
             socket.close();
@@ -84,6 +84,19 @@ public class DictionaryConnection {
         Map<String, Database> databaseMap = new HashMap<>();
 
         // TODO Add your code here
+        // Check section 3.5.1 SHOW DB
+
+        try {
+            
+            out.print("SHOW DB");
+            System.out.println("Client: SHOW DB");  
+            
+            // Status response = Status.readStatus(in);
+            // System.out.println("Server: " + response.getStatusCode() + " " + response.getDetails());            
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.out.println(e);
+        }
 
         return databaseMap;
     }
