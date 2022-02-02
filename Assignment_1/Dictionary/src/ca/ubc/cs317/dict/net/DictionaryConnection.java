@@ -83,21 +83,41 @@ public class DictionaryConnection {
     public synchronized Map<String, Database> getDatabaseList() throws DictConnectionException {
         Map<String, Database> databaseMap = new HashMap<>();
 
-        // TODO Add your code here
+        // TODO Add your code here        
         // Check section 3.5.1 SHOW DB
+        out.println("SHOW DB");
+        System.out.println("Client: SHOW DB");
+        Status serverResponse = Status.readStatus(in);
+        String currentLine;
 
-        try {
-            
-            out.print("SHOW DB");
-            System.out.println("Client: SHOW DB");  
-            
-            // Status response = Status.readStatus(in);
-            // System.out.println("Server: " + response.getStatusCode() + " " + response.getDetails());            
-        } catch (Exception e) {
-            //TODO: handle exception
-            System.out.println(e);
+        System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
+        if (serverResponse.getStatusCode() == 110) {
+            try {
+                 currentLine = in.readLine();
+                 System.out.println("Server: " + currentLine);
+            } catch (Exception e){
+                throw new DictConnectionException();
+            }
+            do {
+                String [] result = DictStringParser.splitAtoms(currentLine);  
+                Database dbEntry = new Database(result[0], result[1]);
+                databaseMap.put(dbEntry.getName(), dbEntry);
+                try {
+                    currentLine = in.readLine();   
+                    System.out.println("Server: " + currentLine);
+                } catch (Exception e) {             
+                    throw new DictConnectionException();       
+                }                
+            } while (!(currentLine.equals(".")));
+            serverResponse = Status.readStatus(in);
+            System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
+            if (serverResponse.getStatusCode() != 250) {
+                throw new DictConnectionException();
+            }
+        } 
+        else {  // Code 554 No databases present
+            throw new DictConnectionException("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
         }
-
         return databaseMap;
     }
 
