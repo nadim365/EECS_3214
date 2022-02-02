@@ -5,6 +5,7 @@ import ca.ubc.cs317.dict.model.Definition;
 import ca.ubc.cs317.dict.model.MatchingStrategy;
 
 import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.*;
@@ -12,7 +13,9 @@ import java.util.*;
 public class DictionaryConnection {
 
     private static final int DEFAULT_PORT = 2628;
-
+    private static Socket socket;
+    private static PrintWriter out;
+    private static BufferedReader in;
     /** Establishes a new connection with a DICT server using an explicit host and port number, and handles initial
      * welcome messages.
      *
@@ -24,6 +27,20 @@ public class DictionaryConnection {
     public DictionaryConnection(String host, int port) throws DictConnectionException {
 
         // TODO Add your code here
+     try{
+        socket = new Socket(host, port);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(
+            new InputStreamReader(socket.getInputStream()));
+       Status response = Status.readStatus(in);
+         if(response.getStatus)
+              throw new DictConnectionException("Expected preliminary reply");
+
+         
+     } catch (Exception e) {
+         //TODO: handle exception
+         System.out.println("Exception: " + e);
+     }
     }
 
     /** Establishes a new connection with a DICT server using an explicit host, with the default DICT port number, and
@@ -44,6 +61,7 @@ public class DictionaryConnection {
     public synchronized void close() {
 
         // TODO Add your code here
+
     }
 
     /** Requests and retrieves a map of database name to an equivalent database object for all valid databases used in the server.
