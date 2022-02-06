@@ -34,11 +34,12 @@ public class DictionaryConnection {
             Status response = Status.readStatus(in);
             if (response.getStatusCode() != 220) {
                 throw new DictConnectionException("Expected code 220");
+            } else {
+                System.out.println(response.getStatusCode() + " " + response.getDetails());
             }
-            System.out.println(response.getStatusCode() +" "+ response.getDetails());
         } catch (Exception e) {
             // TODO: handle exception
-            System.out.println("Exception: " + e);
+            throw new DictConnectionException();
         }
     }
 
@@ -114,9 +115,6 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }
         } 
-        else {  // Code 554 No databases present
-            throw new DictConnectionException("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
-        }
         return databaseMap;
     }
 
@@ -161,11 +159,6 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }   
         }
-        else
-        {
-            throw new DictConnectionException("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
-        }
-
         return set;
     }
 
@@ -180,10 +173,58 @@ public class DictionaryConnection {
      * @throws DictConnectionException If the connection was interrupted, the messages don't match their expected
      * value, or the database or strategy are invalid.
      */
-    public synchronized Set<String> getMatchList(String word, MatchingStrategy strategy, Database database) throws DictConnectionException {
+    public synchronized Set<String> getMatchList(String word, MatchingStrategy strategy, Database database)
+            throws DictConnectionException {
         Set<String> set = new LinkedHashSet<>();
 
         // TODO Add your code here
+        // Logs/Debug for Sanity
+        // String [] temp = DictStringParser.splitAtoms(word);
+        // for (String string : temp) {
+        // System.out.print(string + " ");
+        // }
+        // System.out.println(temp.length);
+
+        out.println("MATCH " + database.getName() + " " + strategy.getName() + " \"" + word + "\"");
+        System.out.println("Client: MATCH " + database.getName() + " " + strategy.getName() + " " + word);
+
+        Status serverResponse = Status.readStatus(in); // Response code and init message
+        String currentLine;
+
+        System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
+        if (serverResponse.getStatusCode() == 152) {
+            try {
+                currentLine = in.readLine(); // The first result
+                String[] result = DictStringParser.splitAtoms(currentLine);
+                set.add(result[1]); // Add result
+                System.out.println("Server : " + currentLine);
+                // System.out.println("My shitty array: " + result[1]);
+            } catch (Exception e) {
+                throw new DictConnectionException();
+            }
+
+            while (!(currentLine.equals("."))) {
+                try {
+                    currentLine = in.readLine();
+                    System.out.println("Server : " + currentLine);
+                } catch (Exception e) {
+                    // TODO: handle exception
+                    throw new DictConnectionException();
+                }
+                if (!(currentLine.equals("."))) {
+                    String[] result = DictStringParser.splitAtoms(currentLine);
+                    set.add(result[1]);
+                }
+            }
+            serverResponse = Status.readStatus(in);
+            System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
+            if (serverResponse.getStatusCode() != 250) {
+                throw new DictConnectionException();
+            }
+        } else if (serverResponse.getStatusCode() == 550 || serverResponse.getStatusCode() == 551) {
+            throw new DictConnectionException();
+        }
+        // TODO handle code 552????
 
         return set;
     }
