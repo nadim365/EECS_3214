@@ -13,9 +13,10 @@ import java.util.*;
 public class DictionaryConnection {
 
     private static final int DEFAULT_PORT = 2628;
-    private static Socket socket;
-    private static PrintWriter out;
-    private static BufferedReader in;
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+
     /** Establishes a new connection with a DICT server using an explicit host and port number, and handles initial
      * welcome messages.
      *
@@ -26,7 +27,7 @@ public class DictionaryConnection {
      */
     public DictionaryConnection(String host, int port) throws DictConnectionException {
 
-        // TODO Add your code here
+        // TODO Remove print (debugging/log) statements? Is the if/else in the try block redundant? Does a status code other than 220 immeidately trigger the catch?        
         try {
             socket = new Socket(host, port);
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -34,13 +35,28 @@ public class DictionaryConnection {
             Status response = Status.readStatus(in);
             if (response.getStatusCode() != 220) {
                 throw new DictConnectionException("Expected code 220");
-            } else {
-                System.out.println(response.getStatusCode() + " " + response.getDetails());
             }
-        } catch (Exception e) {
-            // TODO: handle exception
+            else {
+                System.out.println("Server: " + response.getStatusCode() + " " + response.getDetails());                                     
+            }            
+        } catch (Exception e) {            
+            // System.out.println(e);
             throw new DictConnectionException();
         }
+        
+        // example for aside
+        // try {
+        //     socket = new Socket(host, port);
+        //     out = new PrintWriter(socket.getOutputStream(), true);
+        //     in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        //     System.out.println(in.readLine());
+
+        // } catch (Exception e) {
+        //     //TODO: handle exception
+        // }
+        
+
     }
 
     /** Establishes a new connection with a DICT server using an explicit host, with the default DICT port number, and
@@ -60,15 +76,14 @@ public class DictionaryConnection {
      */
     public synchronized void close() {
 
-        // TODO Add your code here
+        // TODO Remove print statements?
         try {            
             out.println("QUIT");                                    
             System.out.println("Client: QUIT");
-            Status response = Status.readStatus(in);               
+            Status response = Status.readStatus(in);
             System.out.println("Server : " + response.getStatusCode() + " " + response.getDetails());
-            socket.close();
-        } catch (Exception e) {
-            //TODO: handle exception
+            socket.close();   
+        } catch (Exception e) {            
             System.out.println(e);
         }                
         
@@ -99,7 +114,7 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }
             do {
-                String [] result = DictStringParser.splitAtoms(currentLine);  
+                String [] result = DictStringParser.splitAtoms(currentLine);                  
                 Database dbEntry = new Database(result[0], result[1]);
                 databaseMap.put(dbEntry.getName(), dbEntry);
                 try {
@@ -114,7 +129,7 @@ public class DictionaryConnection {
             if (serverResponse.getStatusCode() != 250) {
                 throw new DictConnectionException();
             }
-        } 
+        }         
         return databaseMap;
     }
 
@@ -173,21 +188,20 @@ public class DictionaryConnection {
      * @throws DictConnectionException If the connection was interrupted, the messages don't match their expected
      * value, or the database or strategy are invalid.
      */
-    public synchronized Set<String> getMatchList(String word, MatchingStrategy strategy, Database database)
-            throws DictConnectionException {
+    public synchronized Set<String> getMatchList(String word, MatchingStrategy strategy, Database database) throws DictConnectionException {
         Set<String> set = new LinkedHashSet<>();
-
-        // TODO Add your code here
+        
+        // TODO Add your code here        
         // Logs/Debug for Sanity
         // String [] temp = DictStringParser.splitAtoms(word);
         // for (String string : temp) {
-        // System.out.print(string + " ");
+        //     System.out.print(string + " ");
         // }
         // System.out.println(temp.length);
 
-        out.println("MATCH " + database.getName() + " " + strategy.getName() + " \"" + word + "\"");
+        out.println("MATCH " + database.getName() + " " + strategy.getName() + " \"" + word + "\"");                       
         System.out.println("Client: MATCH " + database.getName() + " " + strategy.getName() + " " + word);
-
+        
         Status serverResponse = Status.readStatus(in); // Response code and init message
         String currentLine;
 
@@ -195,24 +209,24 @@ public class DictionaryConnection {
         if (serverResponse.getStatusCode() == 152) {
             try {
                 currentLine = in.readLine(); // The first result
-                String[] result = DictStringParser.splitAtoms(currentLine);
+                String [] result = DictStringParser.splitAtoms(currentLine);                
                 set.add(result[1]); // Add result
                 System.out.println("Server : " + currentLine);
-                // System.out.println("My shitty array: " + result[1]);
+                // System.out.println("My shitty array: " + result[1]);                
             } catch (Exception e) {
                 throw new DictConnectionException();
             }
-
-            while (!(currentLine.equals("."))) {
+            
+            while (!(currentLine.equals("."))) {              
                 try {
-                    currentLine = in.readLine();
-                    System.out.println("Server : " + currentLine);
+                    currentLine = in.readLine();                                        
+                    System.out.println("Server : " + currentLine);                                        
                 } catch (Exception e) {
                     // TODO: handle exception
                     throw new DictConnectionException();
                 }
                 if (!(currentLine.equals("."))) {
-                    String[] result = DictStringParser.splitAtoms(currentLine);
+                    String [] result = DictStringParser.splitAtoms(currentLine);
                     set.add(result[1]);
                 }
             }
@@ -241,26 +255,23 @@ public class DictionaryConnection {
      * @throws DictConnectionException If the connection was interrupted, the messages don't match their expected
      * value, or the database is invalid.
      */
-    public synchronized Collection<Definition> getDefinitions(String word, Database database)
-            throws DictConnectionException {
+    public synchronized Collection<Definition> getDefinitions(String word, Database database) throws DictConnectionException {
         Collection<Definition> set = new ArrayList<>();
 
         // TODO Add your code here
-        word = word.trim();
+
+        word = word.trim(); // remove whitespace from both ends of string
         out.println("DEFINE " + database.getName() + " \"" + word + "\"");
         System.out.println("Client: DEFINE " + database.getName() + " " + word);
 
-        Status serverResponse = Status.readStatus(in); // if positive reply then : 150 .......
-
+        Status serverResponse = Status.readStatus(in);         
+        // if positive reply then : 150
         if (serverResponse.getStatusCode() == 150) {
             String currentLine = serverResponse.getDetails(); // collecting number of definitions found
             String[] result = DictStringParser.splitAtoms(currentLine);
-            int numDefs = Integer.parseInt(result[0]); // parsing number of definitions found
+            int numDefs = Integer.parseInt(result[0]); // parsing number of definitions found from currentLine
 
-            System.out.println("Server  :" + serverResponse.getStatusCode() + " " + serverResponse.getDetails()); // printing
-                                                                                                                  // :
-                                                                                                                  // 150
-                                                                                                                  // .....
+            System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails()); 
             try {
                 currentLine = in.readLine();// reading the first definition
 
@@ -268,11 +279,13 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }
             String[] result2 = DictStringParser.splitAtoms(currentLine); // splitting word database name and defintion
-            Definition def = new Definition(result2[1], result2[2]); // initializing definition with word and database
-                                                                     // name
+            Definition def = new Definition(result2[1], result2[2]); // initializing definition with word and database name
+
+            // Definition def = new Definition(word, result[wordCount + 1]);
+
             while ((!(currentLine.equals("."))) || numDefs > 0) {
 
-                System.out.println("Server : " + currentLine);
+                System.out.println("Server: " + currentLine);
                 try {
                     currentLine = in.readLine();
                     if (!(currentLine.equals("."))) {
@@ -282,7 +295,7 @@ public class DictionaryConnection {
                     throw new DictConnectionException();
                 }
                 if (currentLine.equals(".") && numDefs > 0) {
-                    System.out.println("Server : " + currentLine);
+                    System.out.println("Server: " + currentLine);
                     set.add(def);
                     if (numDefs != 1) {
                         try {
@@ -302,10 +315,12 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }
             System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
-        } else if (serverResponse.getStatusCode() == 550 || serverResponse.getStatusCode() == 552) {
+        } else if (serverResponse.getStatusCode() == 550) {
             throw new DictConnectionException();
         }
+
         return set;
+        
     }
 
 }
