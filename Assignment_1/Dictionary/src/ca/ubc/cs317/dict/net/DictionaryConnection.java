@@ -275,7 +275,9 @@ public class DictionaryConnection {
                 System.out.println("Server : " + currentLine);
                 try {
                     currentLine = in.readLine();
-                    def.appendDefinition(currentLine);
+                    if (!(currentLine.equals("."))) {
+                        def.appendDefinition(currentLine);//appends defintions to member defintion
+                    }
                 } catch (Exception e) {
                     throw new DictConnectionException();
                 }
