@@ -246,18 +246,21 @@ public class DictionaryConnection {
         Collection<Definition> set = new ArrayList<>();
 
         // TODO Add your code here
+        word = word.trim();
         out.println("DEFINE " + database.getName() + " \"" + word + "\"");
         System.out.println("Client: DEFINE " + database.getName() + " " + word);
 
         Status serverResponse = Status.readStatus(in); // if positive reply then : 150 .......
-        String currentLine = serverResponse.getDetails(); // collecting number of definitions found
-        String[] result = DictStringParser.splitAtoms(currentLine);
-        int numDefs = Integer.parseInt(result[0]); // parsing number of definitions found
 
-        System.out.println("Server  :" + serverResponse.getStatusCode() + " " + serverResponse.getDetails()); // printing
-                                                                                                              // : 150
-                                                                                                              // .....
         if (serverResponse.getStatusCode() == 150) {
+            String currentLine = serverResponse.getDetails(); // collecting number of definitions found
+            String[] result = DictStringParser.splitAtoms(currentLine);
+            int numDefs = Integer.parseInt(result[0]); // parsing number of definitions found
+
+            System.out.println("Server  :" + serverResponse.getStatusCode() + " " + serverResponse.getDetails()); // printing
+                                                                                                                  // :
+                                                                                                                  // 150
+                                                                                                                  // .....
             try {
                 currentLine = in.readLine();// reading the first definition
 
@@ -265,26 +268,27 @@ public class DictionaryConnection {
                 throw new DictConnectionException();
             }
             String[] result2 = DictStringParser.splitAtoms(currentLine); // splitting word database name and defintion
-            Definition def = new Definition(result2[1], result2[2]); // initializing definition with word and database name
+            Definition def = new Definition(result2[1], result2[2]); // initializing definition with word and database
+                                                                     // name
             while ((!(currentLine.equals("."))) || numDefs > 0) {
 
                 System.out.println("Server : " + currentLine);
                 try {
                     currentLine = in.readLine();
-                    def.appendDefinition(currentLine); 
+                    def.appendDefinition(currentLine);
                 } catch (Exception e) {
                     throw new DictConnectionException();
                 }
                 if (currentLine.equals(".") && numDefs > 0) {
                     System.out.println("Server : " + currentLine);
                     set.add(def);
-                    if(numDefs != 1){
+                    if (numDefs != 1) {
                         try {
                             currentLine = in.readLine();
                             result2 = DictStringParser.splitAtoms(currentLine);
                             def = new Definition(result2[1], result2[2]);
                         } catch (Exception e) {
-                            //TODO: handle exception
+                            // TODO: handle exception
                             throw new DictConnectionException();
                         }
                     }
@@ -295,12 +299,10 @@ public class DictionaryConnection {
             if (serverResponse.getStatusCode() != 250) {
                 throw new DictConnectionException();
             }
-            System.out.println("Server : " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
-
-        } else {
+            System.out.println("Server: " + serverResponse.getStatusCode() + " " + serverResponse.getDetails());
+        } else if (serverResponse.getStatusCode() == 550 || serverResponse.getStatusCode() == 552) {
             throw new DictConnectionException();
         }
-
         return set;
     }
 
