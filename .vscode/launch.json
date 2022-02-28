@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch DNSLookupCUI",
+            "request": "launch",
+            "mainClass": "ca.yorku.eecs.dnslookup.DNSLookupCUI",
+            "projectName": "EECS_3214_cd5658a9"
+        },
+        {
+            "type": "java",
             "name": "Launch DictionaryMain",
             "request": "launch",
             "mainClass": "ca.ubc.cs317.dict.ui.DictionaryMain",
