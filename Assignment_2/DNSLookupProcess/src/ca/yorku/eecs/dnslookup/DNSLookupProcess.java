@@ -229,9 +229,9 @@ public class DNSLookupProcess implements Closeable {
     protected int buildQuery(ByteBuffer queryBuffer, DNSQuestion question) {
 
         /* TO BE COMPLETED BY THE STUDENT */
-        int randomNum = ThreadLocalRandom.current().nextInt(0, 65535 + 1); // generate ID for query header
-        queryBuffer.putShort((short) randomNum); // adding ID to ByetBuffer object
-        queryBuffer.putShort((short) 0); // QR OPCODE AA TC RD RA Z RCODE
+        int ID = ThreadLocalRandom.current().nextInt(0, 65535 + 1); // generate ID for query header
+        queryBuffer.putShort((short) ID); // adding ID to ByetBuffer object
+        queryBuffer.putShort((short) 0); // QR OPCODE AA TC RD-not set RA Z RCODE
         queryBuffer.putShort((short) 1); // QDCOUNT
         queryBuffer.putShort((short) 0); // ANCOUNT
         queryBuffer.putShort((short) 0); // NSCOUNT
@@ -241,13 +241,20 @@ public class DNSLookupProcess implements Closeable {
 
         String[] hostName = question.getHostName().split("\\."); // split hostname into array of strings
         for (int i = 0; i < hostName.length; i++) {
-            queryBuffer.put((byte) hostName[i].length());  // adding length of each string to buffer
-            queryBuffer.put(hostName[i].getBytes());       // adding current part of hostname to buffer
+            queryBuffer.put((byte) hostName[i].length()); // adding length of each string to buffer
+            queryBuffer.put(hostName[i].getBytes()); // adding current part of hostname to buffer
         }
         queryBuffer.put((byte) 0); // adding null byte to end of hostname
-        
+        queryBuffer.putShort((short) question.getRecordType().getCode()); // adding record type to buffer
+        queryBuffer.putShort((short) question.getRecordClass().getCode()); // adding record class to buffer
 
-        return 0;
+        if (queryBuffer.position() != queryBuffer.capacity()) {
+            System.out.println("Error: queryBuffer.position() != queryBuffer.capacity()");
+
+        }
+
+        return ID; // return Transaction ID of buffer
+
     }
 
     /**
