@@ -20,6 +20,7 @@ public class DNSLookupProcess implements Closeable {
     private static final int MAX_INDIRECTION_LEVEL_NS = 10;
     private static final int MAX_QUERY_ATTEMPTS = 3;
     protected static final int SO_TIMEOUT = 5000;
+    private static int queryId = 0;
 
     private final DNSCache cache = DNSCache.getInstance();
     private final Random random = new SecureRandom();
@@ -253,6 +254,7 @@ public class DNSLookupProcess implements Closeable {
 
         }
 
+        queryId = ID;
         return ID; // return Transaction ID of buffer
 
     }
