@@ -205,10 +205,39 @@ public class DNSLookupProcess implements Closeable {
      *         and only those whose record type is NS. If a response is received but
      *         there are no nameservers, returns an empty
      *         set.
+     * @throws IOException
      */
-    protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress) {
-
+    protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress)
+            throws IOException {
         /* TO BE COMPLETED BY THE STUDENT */
+
+        // building and sending the query message
+        DatagramSocket socket = new DatagramSocket();
+        socket.setSoTimeout(SO_TIMEOUT);
+        ByteBuffer qBuffer = ByteBuffer.allocate(512);
+        int ID = buildQuery(qBuffer, question);
+        byte[] qBytes = qBuffer.array(); // getting resulting query into byte array
+        byte[] rBytes = new byte[512]; // initalize response buffer
+        DatagramPacket packet = new DatagramPacket(qBytes, qBytes.length, serverAddress, DEFAULT_DNS_PORT);
+        listener.beforeSendingQuery(question, serverAddress, ID);
+        socket.send(packet);
+
+        if()
+
+        // recevieng and parsing the response message
+        packet = new DatagramPacket(rBytes, rBytes.length);
+        try {
+            socket.receive(packet);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        rBytes = packet.getData();
+
+        // parsing the response message
+        int qID = ByteBuffer.wrap(rBytes, 0, 2).getShort();
+
+        socket.close();
         return null;
     }
 
