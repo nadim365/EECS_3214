@@ -206,36 +206,62 @@ public class DNSLookupProcess implements Closeable {
      *         there are no nameservers, returns an empty
      *         set.
      * @throws IOException
+     * @throws InterruptedException
      */
     protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress)
             throws IOException {
         /* TO BE COMPLETED BY THE STUDENT */
-
+        Set<ResourceRecord> results = new HashSet<>();
         // building and sending the query message
         DatagramSocket socket = new DatagramSocket();
-        socket.setSoTimeout(SO_TIMEOUT);
+        int no_attempts = MAX_QUERY_ATTEMPTS;
+        // socket.setSoTimeout(SO_TIMEOUT); // set timeout for the socket.
         ByteBuffer qBuffer = ByteBuffer.allocate(512);
         int ID = buildQuery(qBuffer, question);
         byte[] qBytes = qBuffer.array(); // getting resulting query into byte array
         byte[] rBytes = new byte[512]; // initalize response buffer
-        DatagramPacket packet = new DatagramPacket(qBytes, qBytes.length, serverAddress, DEFAULT_DNS_PORT);
-        listener.beforeSendingQuery(question, serverAddress, ID);
-        socket.send(packet);
+        DatagramPacket packet = new DatagramPacket(qBytes, qBytes.length, serverAddress, DEFAULT_DNS_PORT); // intialize
+                                                                                                            // packet
+                                                                                                            // for
+                                                                                                            // sending
+                                                                                                            // query
+        while (no_attempts > 0) {
+            listener.beforeSendingQuery(question, serverAddress, ID);
+            socket.send(packet);
+            try {
+                listener.wait(SO_TIMEOUT);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                continue;
+            }
+            packet.setData(rBytes);
+            socket.receive(packet);
 
-        if()
+            // checking if ID of response is valid.
+            int responseID = ByteBuffer.wrap(rBytes, 0, 2).getShort(); // getting ID of response
+            if (ID != responseID) {
+                no_attempts--;
+                continue;
+            } else {
+                int flags = ByteBuffer.wrap(rBytes, 2, 2).getShort(); // getting QR Opcode AA TC RD RA
+                break;
+            }
+        }
 
         // recevieng and parsing the response message
-        packet = new DatagramPacket(rBytes, rBytes.length);
-        try {
-            socket.receive(packet);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
         rBytes = packet.getData();
+        int num_answers = ByteBuffer.wrap(rBytes, 6, 2).getShort(); // getting number of answers
+        int num_authority = ByteBuffer.wrap(rBytes, 8, 2).getShort(); // getting number of authority
+        int num_additional = ByteBuffer.wrap(rBytes, 10, 2).getShort(); // getting number of additional
+        int qoffset = 12; // offset to start query.
+        int qType = qoffset + question.getHostName().length();
+        int qClass = qType + 2;
+        int aoffset = qClass + 2; // offset to start answers.
+        int total_records = num_answers + num_authority + num_additional;
 
-        // parsing the response message
-        int qID = ByteBuffer.wrap(rBytes, 0, 2).getShort();
+        while (total_records != 0) {
+
+        }
 
         socket.close();
         return null;

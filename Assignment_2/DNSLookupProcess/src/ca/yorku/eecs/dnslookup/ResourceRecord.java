@@ -6,9 +6,12 @@ import java.util.Date;
 import java.util.Objects;
 
 /**
- * A resource record corresponds to each individual result returned by a DNS response. It links a DNS question (host
- * name, type and class) to either an IP address (e.g., for A or AAAA records) or a textual response (e.g., for CNAME or
- * NS records). An expiration time is also specified, and computed based on the TTL provided when the record is
+ * A resource record corresponds to each individual result returned by a DNS
+ * response. It links a DNS question (host
+ * name, type and class) to either an IP address (e.g., for A or AAAA records)
+ * or a textual response (e.g., for CNAME or
+ * NS records). An expiration time is also specified, and computed based on the
+ * TTL provided when the record is
  * created.
  */
 public class ResourceRecord implements Serializable {
@@ -19,12 +22,16 @@ public class ResourceRecord implements Serializable {
     private InetAddress inetResult;
 
     /**
-     * Creates a new resource record based on a string result, without an InetAddress.
+     * Creates a new resource record based on a string result, without an
+     * InetAddress.
      *
-     * @param question Question object containing the host name (FQDN), type and class associated to this record.
+     * @param question Question object containing the host name (FQDN), type and
+     *                 class associated to this record.
      * @param ttl      Number of seconds to keep this record in cache.
-     * @param result   The string representation associated to the record's result. Its meaning depends on the type, but
-     *                 for CNAME, NS and MX it represents the FQDN of the host associated to this record.
+     * @param result   The string representation associated to the record's result.
+     *                 Its meaning depends on the type, but
+     *                 for CNAME, NS and MX it represents the FQDN of the host
+     *                 associated to this record.
      */
     public ResourceRecord(DNSQuestion question, int ttl, String result) {
         this.question = question;
@@ -34,10 +41,13 @@ public class ResourceRecord implements Serializable {
     }
 
     /**
-     * Creates a new resource record based on an InetAddress result (typically an A or AAAA record). The string
-     * representation is also saved based on the getHostAddress method of InetAddress.
+     * Creates a new resource record based on an InetAddress result (typically an A
+     * or AAAA record). The string
+     * representation is also saved based on the getHostAddress method of
+     * InetAddress.
      *
-     * @param question Question object containing the host name (FQDN), type and class associated to this record.
+     * @param question Question object containing the host name (FQDN), type and
+     *                 class associated to this record.
      * @param ttl      Number of seconds to keep this record in cache.
      * @param result   The InetAddress object associated to the record's result.
      */
@@ -63,8 +73,10 @@ public class ResourceRecord implements Serializable {
     }
 
     /**
-     * The remaining TTL for this record, in seconds. It is rounded up, based on the remaining time until this record
-     * expires. The TTL returned by this method will only match the TTL obtained from the DNS server in the first second
+     * The remaining TTL for this record, in seconds. It is rounded up, based on the
+     * remaining time until this record
+     * expires. The TTL returned by this method will only match the TTL obtained
+     * from the DNS server in the first second
      * from the time this record was created.
      *
      * @return The number of seconds, rounded up, until this record expires.
@@ -74,8 +86,10 @@ public class ResourceRecord implements Serializable {
     }
 
     /**
-     * Returns true if this record has expired, and false otherwise. An expired record should not be maintained in
-     * cache, instead a new record should be retrieved from an appropriate nameserver.
+     * Returns true if this record has expired, and false otherwise. An expired
+     * record should not be maintained in
+     * cache, instead a new record should be retrieved from an appropriate
+     * nameserver.
      *
      * @return true if this record has expired, and false otherwise.
      */
@@ -84,7 +98,8 @@ public class ResourceRecord implements Serializable {
     }
 
     /**
-     * Updates the current record with updated information from a new record. This will update the expiration time if
+     * Updates the current record with updated information from a new record. This
+     * will update the expiration time if
      * the new record contains a longer expiration time.
      *
      * @param record Another resource record with potentially new information.
@@ -104,10 +119,13 @@ public class ResourceRecord implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         ResourceRecord that = (ResourceRecord) o;
-        return question.equals(that.question) && textResult.equals(that.textResult) && Objects.equals(inetResult, that.inetResult);
+        return question.equals(that.question) && textResult.equals(that.textResult)
+                && Objects.equals(inetResult, that.inetResult);
     }
 
     @Override
