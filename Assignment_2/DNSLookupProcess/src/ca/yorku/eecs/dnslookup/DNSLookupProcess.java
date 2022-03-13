@@ -6,6 +6,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -211,60 +212,112 @@ public class DNSLookupProcess implements Closeable {
     protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress)
             throws IOException {
         /* TO BE COMPLETED BY THE STUDENT */
-        Set<ResourceRecord> results = new HashSet<>();
+        Set<ResourceRecord> result = new HashSet<>();
+
         // building and sending the query message
-        DatagramSocket socket = new DatagramSocket();
-        int no_attempts = MAX_QUERY_ATTEMPTS;
-        // socket.setSoTimeout(SO_TIMEOUT); // set timeout for the socket.
+        // DatagramSocket socket = new DatagramSocket();
         ByteBuffer qBuffer = ByteBuffer.allocate(512);
-        int ID = buildQuery(qBuffer, question);
-        byte[] qBytes = qBuffer.array(); // getting resulting query into byte array
-        byte[] rBytes = new byte[512]; // initalize response buffer
-        DatagramPacket packet = new DatagramPacket(qBytes, qBytes.length, serverAddress, DEFAULT_DNS_PORT); // intialize
-                                                                                                            // packet
-                                                                                                            // for
-                                                                                                            // sending
-                                                                                                            // query
-        while (no_attempts > 0) {
-            listener.beforeSendingQuery(question, serverAddress, ID);
+        int id = buildQuery(qBuffer, question);
+        byte[] qByteArr = qBuffer.array(); // put query qBuffer into byte array qByteArr
+        DatagramPacket packet = new DatagramPacket(qByteArr, qByteArr.length, serverAddress, DEFAULT_DNS_PORT); // intialize
+                                                                                                                // packet
+                                                                                                                // for
+                                                                                                                // sending
+                                                                                                                // query
+
+        // Response Buffer Declaration & Init
+        byte[] rByteArray = new byte[512]; // initalize response byte array
+        ByteBuffer responseBuffer = ByteBuffer.allocate(512); // decl response buffer
+        DatagramPacket responsePacket = new DatagramPacket(rByteArray, rByteArray.length); // create new packet for
+                                                                                           // response
+
+        // Send and try to receive packet. Ignore if ID not equal. If timeout, resend
+        // packet.
+        // TODO: Does the timeout work as intended??
+
+        int no_attempts = 0;
+        while (no_attempts >= MAX_QUERY_ATTEMPTS) {
+            listener.beforeSendingQuery(question, serverAddress, id);
             socket.send(packet);
+            socket.setSoTimeout(SO_TIMEOUT);
             try {
-                listener.wait(SO_TIMEOUT);
-            } catch (InterruptedException e) {
+                // listener.wait(SO_TIMEOUT);
+                socket.receive(responsePacket); // receive response
+                // TODO: line 245 maybe redundant, combine into one .wrap(packet.getData()),
+                // rByteArray not needed?
+                rByteArray = responsePacket.getData(); // put data into response byte array
+                responseBuffer = ByteBuffer.wrap(rByteArray); // put byte arr into response buffer
+            } catch (SocketTimeoutException e) {
                 e.printStackTrace();
                 continue;
             }
-            packet.setData(rBytes);
-            socket.receive(packet);
+            // } catch (InterruptedException e) {
+            // e.printStackTrace();
+            // continue;
+            // }
+            // packet.setData(rBytes);
+            // socket.receive(packet);
 
             // checking if ID of response is valid.
-            int responseID = ByteBuffer.wrap(rBytes, 0, 2).getShort(); // getting ID of response
-            if (ID != responseID) {
-                no_attempts--;
+            int responseID = ByteBuffer.wrap(rByteArray, 0, 2).getShort(); // getting ID of response
+            if (id != responseID) {
+                no_attempts++;
                 continue;
             } else {
-                int flags = ByteBuffer.wrap(rBytes, 2, 2).getShort(); // getting QR Opcode AA TC RD RA
+                // TODO: Check byte/numbers/positions
+                int flags = ByteBuffer.wrap(rByteArray, 2, 2).getShort(); // getting QR Opcode AA TC RD RA
                 break;
             }
         }
 
+        // Switch Buffers to read mode
+        qBuffer.flip();
+        responseBuffer.flip();
+
         // recevieng and parsing the response message
-        rBytes = packet.getData();
-        int num_answers = ByteBuffer.wrap(rBytes, 6, 2).getShort(); // getting number of answers
-        int num_authority = ByteBuffer.wrap(rBytes, 8, 2).getShort(); // getting number of authority
-        int num_additional = ByteBuffer.wrap(rBytes, 10, 2).getShort(); // getting number of additional
-        int qoffset = 12; // offset to start query.
-        int qType = qoffset + question.getHostName().length();
-        int qClass = qType + 2;
-        int aoffset = qClass + 2; // offset to start answers.
-        int total_records = num_answers + num_authority + num_additional;
+        // rBytes = packet.getData();
 
-        while (total_records != 0) {
+        // int num_answers = ByteBuffer.wrap(rBytes, 6, 2).getShort(); // getting number
+        // of answers ANCOUNT (6-8)
+        // int num_authority = ByteBuffer.wrap(rBytes, 8, 2).getShort(); // getting
+        // number of authority NSCOUNT (8-10)
+        // int num_additional = ByteBuffer.wrap(rBytes, 10, 2).getShort(); // getting
+        // number of additional ARCOUNT (10-12)
+        // int qoffset = 12; // offset to start query. Header is 12 Bytes
 
-        }
+        // //TODO: verify dis shit, convert string to ASCII bytes?? then count number of
+        // bytes?
+        // //int qType = qoffset + question.getHostName().length();
+        // byte[] questionHostName =
+        // question.getHostName().getBytes(StandardCharsets.US_ASCII);
+        // int qType = qoffset + questionHostName.length; // 12 + the question length to
+        // get to qtype position
+        // int qClass = qType + 2; //
+        // int aoffset = qClass + 2; // offset to start answers.
+        // int total_records = num_answers + num_authority + num_additional;
 
-        socket.close();
-        return null;
+        // while (total_records != 0) {
+
+        // }
+
+        // // Put resp q in bytes into buffer
+        // ByteBuffer responseQuestionBuffer = ByteBuffer.allocate(qNameLength);
+        // ByteBuffer.wrap(responseQuestionInBytes);
+        // responseQuestionBuffer.flip();
+
+        int qNameLength = (qBuffer.limit() + 1) - 12 - 2 - 2;
+        responseBuffer.position(qBuffer.limit() + qNameLength);
+        int timeToLive = responseBuffer.getInt();
+
+        // TODO: LOL FIX THIS DONT USE THIS. JUST USE IT TO PRY INTO RESOURCE RECORDS
+        // ResourceRecord resourceRecResult = new ResourceRecord(question, timeToLive,
+        // "urmumgey");
+        // result.add(resourceRecResult);
+
+        close();
+
+        // TODO: return result?? Return the set<resource record> ??
+        return result;
     }
 
     /**
