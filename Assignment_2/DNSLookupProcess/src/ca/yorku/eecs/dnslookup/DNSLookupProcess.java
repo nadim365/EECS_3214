@@ -212,7 +212,6 @@ public class DNSLookupProcess implements Closeable {
     protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress)
             throws IOException {
         /* TO BE COMPLETED BY THE STUDENT */
-        Set<ResourceRecord> result = new HashSet<>();
 
         // building and sending the query message
         // DatagramSocket socket = new DatagramSocket();
@@ -266,13 +265,14 @@ public class DNSLookupProcess implements Closeable {
             } else {
                 // TODO: Check byte/numbers/positions
                 int flags = ByteBuffer.wrap(rByteArray, 2, 2).getShort(); // getting QR Opcode AA TC RD RA
-                break;
+
+                return processResponse(responseBuffer);
             }
         }
 
         // Switch Buffers to read mode
-        qBuffer.flip();
-        responseBuffer.flip();
+        // qBuffer.flip();
+        // responseBuffer.flip();
 
         // recevieng and parsing the response message
         // rBytes = packet.getData();
@@ -305,16 +305,16 @@ public class DNSLookupProcess implements Closeable {
         // ByteBuffer.wrap(responseQuestionInBytes);
         // responseQuestionBuffer.flip();
 
-        int qNameLength = (qBuffer.limit() + 1) - 12 - 2 - 2;
-        responseBuffer.position(qBuffer.limit() + qNameLength);
-        int timeToLive = responseBuffer.getInt();
+        // int qNameLength = (qBuffer.limit() + 1) - 12 - 2 - 2;
+        // responseBuffer.position(qBuffer.limit() + qNameLength);
+        // int timeToLive = responseBuffer.getInt();
 
         // TODO: LOL FIX THIS DONT USE THIS. JUST USE IT TO PRY INTO RESOURCE RECORDS
         // ResourceRecord resourceRecResult = new ResourceRecord(question, timeToLive,
         // "urmumgey");
         // result.add(resourceRecResult);
 
-        close();
+        // close();
 
         // TODO: return result?? Return the set<resource record> ??
         return result;
@@ -389,6 +389,8 @@ public class DNSLookupProcess implements Closeable {
     protected Set<ResourceRecord> processResponse(ByteBuffer responseBuffer) {
 
         /* TO BE COMPLETED BY THE STUDENT */
+        Set<ResourceRecord> result = new HashSet<>();
+
         return null;
     }
 
