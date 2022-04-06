@@ -1,6 +1,7 @@
 {
   "java.project.sourcePaths": [
     "Assignment_1/Dictionary/src",
-    "Assignment_2/DNSLookupProcess/src"
+    "Assignment_2/DNSLookupProcess/src",
+    "Assignment_3/RTSPClient/src"
   ]
 }
