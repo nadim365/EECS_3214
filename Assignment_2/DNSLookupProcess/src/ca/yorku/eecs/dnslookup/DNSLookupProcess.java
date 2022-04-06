@@ -317,7 +317,7 @@ public class DNSLookupProcess implements Closeable {
         // close();
 
         // TODO: return result?? Return the set<resource record> ??
-        return result;
+        return null;
     }
 
     /**
