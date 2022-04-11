@@ -18,11 +18,14 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.concurrent.ThreadLocalRandom;
+
+import javax.xml.crypto.Data;
 
 /**
  * This class represents a connection with an RTSP server.
@@ -42,7 +45,8 @@ public class RTSPConnection {
     private DatagramSocket rtpUDP_datagram_socket; // datagram socket for RTP using UDP
     private PrintWriter outputStreamTCP;
     private BufferedReader inputStreamTCP;
-    private RTPReceivingThread dingDong; // thread for receiving RTP packets
+
+    RTPReceivingThread myThread = new RTPReceivingThread();
 
     /**
      * Establishes a new connection with an RTSP server. No message is sent at this
@@ -96,6 +100,7 @@ public class RTSPConnection {
         // Establish RTP UDP datagram socket
         try {
             rtpUDP_datagram_socket = new DatagramSocket(randPortNum);
+            // rtpUDP_datagram_socket = new DatagramSocket();
             rtpUDP_datagram_socket.setSoTimeout(1000);
         } catch (Exception e) {
             e.printStackTrace();
@@ -114,11 +119,21 @@ public class RTSPConnection {
 
             // Response, add into list line by line
             ArrayList<String> responseList = new ArrayList<String>();
-            do {
-                serverResponse = inputStreamTCP.readLine();
+
+            // TODO: CHECK WHILE LOOP
+
+            serverResponse = inputStreamTCP.readLine();
+            while (!(serverResponse.equals(""))) {
                 System.out.println(serverResponse);
                 responseList.add(serverResponse);
-            } while (!(serverResponse.equals("")));
+                serverResponse = inputStreamTCP.readLine();
+            }
+
+            // do {
+            // serverResponse = inputStreamTCP.readLine();
+            // System.out.println(serverResponse);
+            // responseList.add(serverResponse);
+            // } while (!(serverResponse.equals("")));
 
             // Check response code
             String[] responseArray = responseList.get(0).split("\\s+");
@@ -160,17 +175,27 @@ public class RTSPConnection {
 
             request = "PLAY " + videoName + " RTSP/1.0\nCSeq: " + CSeq + "\nSession: " + sessionNumber + "\n";
             System.out.println(request);
-            // Send PLAY request on RTSP TCP socket
 
+            // Send PLAY request on RTSP TCP socket
             outputStreamTCP.println(request);
 
             // Response, add into list line by line
+
             ArrayList<String> responseList = new ArrayList<String>();
-            do {
-                serverResponse = inputStreamTCP.readLine();
+            // TODO: CHECK WHILE LOOP
+
+            serverResponse = inputStreamTCP.readLine();
+            while (!(serverResponse.equals(""))) {
                 System.out.println(serverResponse);
                 responseList.add(serverResponse);
-            } while (!(serverResponse.equals("")));
+                serverResponse = inputStreamTCP.readLine();
+            }
+
+            // do {
+            // serverResponse = inputStreamTCP.readLine();
+            // System.out.println(serverResponse);
+            // responseList.add(serverResponse);
+            // } while (!(serverResponse.equals("")));
 
             // Check response code
             String[] responseArray = responseList.get(0).split("\\s+");
@@ -184,9 +209,8 @@ public class RTSPConnection {
             // sessionNumber = Integer.parseInt(responseArray[1]);
 
             // TODO: Fish implementing run() in RTPReceivingThread()
-
-            dingDong = new RTPReceivingThread();
-            dingDong.start();
+            myThread = new RTPReceivingThread();
+            myThread.start();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -210,19 +234,24 @@ public class RTSPConnection {
             // TODO
             byte[] responseBuffer = new byte[BUFFER_LENGTH];
             DatagramPacket rtpDatagramPacketResponse = new DatagramPacket(responseBuffer, responseBuffer.length);
-            boolean flag = true;
-            while (flag) {
+
+            while (true) {
                 try {
                     rtpUDP_datagram_socket.setSoTimeout(2000);
                     rtpUDP_datagram_socket.receive(rtpDatagramPacketResponse);
-                    session.processReceivedFrame(parseRTPPacket(rtpDatagramPacketResponse));
+
+                    byte[] data = new byte[rtpDatagramPacketResponse.getLength()];
+                    System.arraycopy(rtpDatagramPacketResponse.getData(), rtpDatagramPacketResponse.getOffset(), data,
+                            0, rtpDatagramPacketResponse.getLength());
+
+                    DatagramPacket packet2 = new DatagramPacket(data, data.length);
+                    session.processReceivedFrame(parseRTPPacket(packet2));
+                    // session.processReceivedFrame(parseRTPPacket(rtpDatagramPacketResponse));
                     sleep(40);
                 } catch (Exception e) {
-                    // TODO: handle exception
-                    flag = false;
+                    break;
                 }
             }
-
         }
 
     }
@@ -238,19 +267,16 @@ public class RTSPConnection {
      *                       successful response.
      */
     public synchronized void pause() throws RTSPException {
-
-        // TODO
         CSeq++;
         String request;
         String serverResponse;
         int responseCode;
+        request = "PAUSE " + videoName + " RTSP/1.0\nCSeq: " + CSeq + "\nSession: " + sessionNumber + "\n";
 
         try {
-            request = "PAUSE " + videoName + " RTSP/1.0\nCSeq: " + CSeq + "\nSession: " + sessionNumber + "\n";
             System.out.println(request);
 
-            // send PAUSE request on RTSP TCP socket
-
+            // Send PAUSE request on RTSP TCP socket
             outputStreamTCP.println(request);
 
             // Response, add into list line by line
@@ -261,18 +287,21 @@ public class RTSPConnection {
                 responseList.add(serverResponse);
             } while (!(serverResponse.equals("")));
 
+            // Check response code
             String[] responseArray = responseList.get(0).split("\\s+");
             responseCode = Integer.parseInt(responseArray[1]);
-
             if (responseCode != 200) {
                 throw new RTSPException(responseList.get(0));
             }
-            dingDong.interrupt();
+
+            // // Get session number
+            // responseArray = responseList.get(3).split("\\s+");
+            // sessionNumber = Integer.parseInt(responseArray[1]);
 
         } catch (Exception e) {
-            // TODO: handle exception
             throw new RTSPException(e);
         }
+        myThread.interrupt();
     }
 
     /**
