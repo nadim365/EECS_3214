@@ -42,6 +42,7 @@ public class RTSPConnection {
     private DatagramSocket rtpUDP_datagram_socket; // datagram socket for RTP using UDP
     private PrintWriter outputStreamTCP;
     private BufferedReader inputStreamTCP;
+    private RTPReceivingThread dingDong; // thread for receiving RTP packets
 
     /**
      * Establishes a new connection with an RTSP server. No message is sent at this
@@ -184,7 +185,7 @@ public class RTSPConnection {
 
             // TODO: Fish implementing run() in RTPReceivingThread()
 
-            RTPReceivingThread dingDong = new RTPReceivingThread();
+            dingDong = new RTPReceivingThread();
             dingDong.start();
 
         } catch (Exception e) {
@@ -239,6 +240,39 @@ public class RTSPConnection {
     public synchronized void pause() throws RTSPException {
 
         // TODO
+        CSeq++;
+        String request;
+        String serverResponse;
+        int responseCode;
+
+        try {
+            request = "PAUSE " + videoName + " RTSP/1.0\nCSeq: " + CSeq + "\nSession: " + sessionNumber + "\n";
+            System.out.println(request);
+
+            // send PAUSE request on RTSP TCP socket
+
+            outputStreamTCP.println(request);
+
+            // Response, add into list line by line
+            ArrayList<String> responseList = new ArrayList<String>();
+            do {
+                serverResponse = inputStreamTCP.readLine();
+                System.out.println(serverResponse);
+                responseList.add(serverResponse);
+            } while (!(serverResponse.equals("")));
+
+            String[] responseArray = responseList.get(0).split("\\s+");
+            responseCode = Integer.parseInt(responseArray[1]);
+
+            if (responseCode != 200) {
+                throw new RTSPException(responseList.get(0));
+            }
+            dingDong.interrupt();
+
+        } catch (Exception e) {
+            // TODO: handle exception
+            throw new RTSPException(e);
+        }
     }
 
     /**
