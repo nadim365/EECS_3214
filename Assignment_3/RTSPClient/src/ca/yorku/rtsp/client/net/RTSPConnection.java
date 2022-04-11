@@ -322,6 +322,40 @@ public class RTSPConnection {
     public synchronized void teardown() throws RTSPException {
 
         // TODO
+        CSeq++;
+        String request;
+        String serverResponse;
+        int responseCode;
+        request = "TEARDOWN " + videoName + " RTSP/1.0\nCSeq: " + CSeq + "\nSession: " + sessionNumber + "\n";
+
+        try {
+            System.out.println(request);
+
+            // Send TEARDOWN request on RTSP TCP socket
+            outputStreamTCP.println(request);
+
+            // Response, add into list line by line
+            ArrayList<String> resposneList = new ArrayList<>();
+            serverResponse = inputStreamTCP.readLine();
+            while (!(serverResponse.equals(""))) {
+                System.out.println(serverResponse);
+                resposneList.add(serverResponse);
+                serverResponse = inputStreamTCP.readLine();
+            }
+
+            responseCode = Integer.parseInt(resposneList.get(0).split("\\s+")[1]);
+
+            if (responseCode != 200) {
+                throw new RTSPException(resposneList.get(0));
+            }
+
+            rtpUDP_datagram_socket.close();
+            myThread.interrupt();
+
+        } catch (Exception e) {
+            // TODO: handle exception
+            throw new RTSPException("Error in teardown");
+        }
     }
 
     /**
