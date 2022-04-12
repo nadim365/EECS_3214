@@ -120,20 +120,12 @@ public class RTSPConnection {
             // Response, add into list line by line
             ArrayList<String> responseList = new ArrayList<String>();
 
-            // TODO: CHECK WHILE LOOP
-
             serverResponse = inputStreamTCP.readLine();
             while (!(serverResponse.equals(""))) {
                 System.out.println(serverResponse);
                 responseList.add(serverResponse);
                 serverResponse = inputStreamTCP.readLine();
             }
-
-            // do {
-            // serverResponse = inputStreamTCP.readLine();
-            // System.out.println(serverResponse);
-            // responseList.add(serverResponse);
-            // } while (!(serverResponse.equals("")));
 
             // Check response code
             String[] responseArray = responseList.get(0).split("\\s+");
@@ -191,12 +183,6 @@ public class RTSPConnection {
                 serverResponse = inputStreamTCP.readLine();
             }
 
-            // do {
-            // serverResponse = inputStreamTCP.readLine();
-            // System.out.println(serverResponse);
-            // responseList.add(serverResponse);
-            // } while (!(serverResponse.equals("")));
-
             // Check response code
             String[] responseArray = responseList.get(0).split("\\s+");
             responseCode = Integer.parseInt(responseArray[1]);
@@ -204,11 +190,6 @@ public class RTSPConnection {
                 throw new RTSPException(responseList.get(0));
             }
 
-            // // Get session number
-            // responseArray = responseList.get(3).split("\\s+");
-            // sessionNumber = Integer.parseInt(responseArray[1]);
-
-            // TODO: Fish implementing run() in RTPReceivingThread()
             myThread = new RTPReceivingThread();
             myThread.start();
 
@@ -231,7 +212,6 @@ public class RTSPConnection {
          */
         @Override
         public void run() {
-            // TODO
             byte[] responseBuffer = new byte[BUFFER_LENGTH];
             DatagramPacket rtpDatagramPacketResponse = new DatagramPacket(responseBuffer, responseBuffer.length);
 
@@ -293,10 +273,6 @@ public class RTSPConnection {
             if (responseCode != 200) {
                 throw new RTSPException(responseList.get(0));
             }
-
-            // // Get session number
-            // responseArray = responseList.get(3).split("\\s+");
-            // sessionNumber = Integer.parseInt(responseArray[1]);
 
         } catch (Exception e) {
             throw new RTSPException(e);
@@ -365,6 +341,15 @@ public class RTSPConnection {
      */
     public synchronized void closeConnection() {
         // TODO
+        try {
+            rtspTCP_socket.close();
+            rtpUDP_datagram_socket.close();
+            myThread.interrupt();
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
     }
 
     /**
@@ -378,7 +363,6 @@ public class RTSPConnection {
 
         // TODO
         Frame result;
-        // byte[] respByteArray = new byte[BUFFER_LENGTH];
         byte[] respByteArray = new byte[packet.getLength()];
         ByteBuffer respBuffer = ByteBuffer.allocate(packet.getLength());
         BitSet bitset;
@@ -386,69 +370,41 @@ public class RTSPConnection {
         boolean marker;
         short sequenceNumber;
         int timestamp;
-        byte payloadType = 26;
-        // int offset;
-        // int length;
+        byte payloadType;
 
         respByteArray = packet.getData(); // put data into response byte array
         respBuffer = ByteBuffer.wrap(respByteArray); // back response buffer with byte arr
-
         respBuffer.order(ByteOrder.BIG_ENDIAN);
-
         // respBuffer.flip(); // set buffer to read mode
 
-        // byte[] rtpPacketHeader = new byte[12];
-        // respBuffer.get(0, rtpPacketHeader, 0, 12); //
-        // bitset = BitSet.valueOf(rtpPacketHeader);
-
-        bitset = BitSet.valueOf(respByteArray);
+        byte[] respByteTwo = new byte[] { respByteArray[1] };
+        bitset = BitSet.valueOf(respByteTwo);
 
         // Get Marker
-        marker = bitset.get(8);
+        int markerInt = (respByteTwo[0] & 0xf000000);
+        if (markerInt == 1) {
+            marker = true;
+        } else {
+            marker = false;
+        }
+        // marker = bitset.get(0);
         System.out.println(marker);
 
         // Get sequence number
         sequenceNumber = ByteBuffer.wrap(respByteArray, 2, 2).getShort();
-        // String seqNumString = "";
-        // for (int i = 16; i < 32; i++) {
-        // boolean value = bitset.get(i);
-        // if (value) {
-        // seqNumString += "1";
-        // } else {
-        // seqNumString += "0";
-        // }
-        // }
-        // sequenceNumber = Short.parseShort(seqNumString, 2);
         System.out.println(sequenceNumber);
 
         // Get timestamp
         timestamp = ByteBuffer.wrap(respByteArray, 4, 4).getInt();
         System.out.println(timestamp);
 
-        // String timestampString = "";
-        // for (int i = 33; i < 35; i++) {
-        // boolean value = bitset.get(i);
-        // if (value) {
-        // timestampString += "1";
-        // } else {
-        // timestampString += "0";
-        // }
-        // }
-        // timestamp = Integer.parseInt(timestampString);
+        // Get payload type
+        payloadType = (byte) (respByteTwo[0] & 0x0fffffff);
 
-        // Byte payloadType = respBuffer.ge
-
-        // Payload
-        // byte[] payloadByteArr = new byte[respBuffer.limit() - 12];
-        // // respBuffer.get(13, payloadByteArr);
-        // respBuffer.get(12, payloadByteArr, 0, (respBuffer.limit() - 12));
-
-        // result = new Frame(payloadType, marker, sequenceNumber, timestamp,
-        // payloadByteArr);
         result = new Frame(payloadType, marker, sequenceNumber, timestamp, respByteArray, 12, respBuffer.limit() - 12);
-        // result = new Frame
 
         return result; // Replace with a proper Frame
+
     }
 
     /**
